@@ -91,6 +91,7 @@ print(b.prediction(loaded_model, sample))
 
 #Adaboost code starts here
 
+
 class DecisionStump:
     def __init__(self):
         self.polarity = 1
@@ -104,17 +105,17 @@ class AdaBoost:
 
     def fit(self, X, y):
         m, n = X.shape
-
         W = np.full(m, 1/m)
         self.clfs = []
 
         for _ in range(self.S):
             clf = DecisionStump()
-
             min_error = float('inf')
+
             for feature in range(n):
                 feature_values = np.sort(np.unique(X[:, feature]))
                 thresholds = (feature_values[:-1] + feature_values[1:]) / 2
+
                 for threshold in thresholds:
                     for polarity in [1, -1]:
                         y_hat = np.ones(len(y))
@@ -142,6 +143,7 @@ class AdaBoost:
     def predict(self, X):
         m, _ = X.shape
         y_hat = np.zeros(m)
+
         for clf in self.clfs:
             predictions = np.ones(m)
             negative_idx = (clf.polarity * X[:, clf.feature_index] < clf.polarity * clf.threshold)
@@ -150,26 +152,19 @@ class AdaBoost:
 
         return np.sign(y_hat)
 
-# Define the data
-data = np.array([
-    [0, 0, 1, 0, 0, 0, 1, 1, 0, 1, 'B'],
-    [1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 'B'],
-    [1, 1, 1, 0, 0, 0, 1, 1, 0, 1, 'A'],
-    [0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 'B'],
-    [1, 1, 1, 0, 1, 0, 1, 1, 0, 1, 'B'],
-    [0, 1, 1, 0, 0, 0, 1, 1, 0, 1, 'B'],
-    [1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 'B'],
-    [1, 1, 1, 0, 1, 0, 1, 1, 0, 1, 'B'],
-    [1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 'B'],
-    [1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 'B']
-])
-
-# Separate features and target
-X = data[:, :-1].astype(int)
-y = np.where(data[:, -1] == 'A', 1, -1)
+    def read(self):
+        self.data = pd.read_csv('C:\\Users\\jrpji\\Downloads\\dtree-data.dat.txt', sep=' ', header=None)
+        self.data.columns = ['A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'A9', 'A10', 'Class']
 
 # Define the AdaBoost model with 50 decision stumps
 model = AdaBoost(S=50)
+
+# Read the data
+model.read()
+
+# Separate features and target
+X = model.data.iloc[:, :-1].values.astype(int)
+y = np.where(model.data.iloc[:, -1] == 'A', 1, -1)
 
 # Fit the model
 model.fit(X, y)
@@ -177,4 +172,3 @@ model.fit(X, y)
 # Predict the class of a new instance
 new_instance = np.array([1, 0, 1, 0, 1, 0, 1, 1, 0, 1]).reshape(1, -1)
 print(f"\\nPrediction for {new_instance}: {Counter(model.predict(new_instance))}")
-
