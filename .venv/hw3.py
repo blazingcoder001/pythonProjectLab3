@@ -1,3 +1,5 @@
+import sys
+
 import pandas as pd
 import numpy as np
 from scipy.stats import entropy
@@ -106,20 +108,6 @@ class Solution:
         return loaded_model
 
 
-a = Solution()
-a.run()
-
-# Load the model and make a prediction
-filename = 'finalized_model.sav'
-b = Solution()
-loaded_model = b.load_model(filename)
-sample = pd.Series(
-    {'A1': True, 'A2': False, 'A3': True, 'A4': False, 'A5': True, 'A6': False, 'A7': True, 'A8': False, 'A9': True,
-     'A10': False})  # Adjusted for 10 attributes
-print(b.prediction(loaded_model, sample))
-
-
-
 #Adaboost code starts here
 
 
@@ -222,19 +210,48 @@ class AdaBoost:
 
         return np.sign(y_hat)
 
-# Define the AdaBoost model with 50 decision stumps
-model = AdaBoost(S=50)
 
-# Read the data
-model.read('C:\\Users\\jrpji\\Downloads\\dtree-data.dat.txt')
+if(sys.argv[1]=="train" and sys.argv[4]=="dt"):
+    a = Solution()
+    a.run()
+elif(sys.argv[1]=="train" and sys.argv[4]=="ada"):
+    model = AdaBoost(S=50)
 
-# Separate features and target
-X = model.data.iloc[:, 1:].values.astype(bool)
-y = np.where(model.data.iloc[:, 0] == 'A', 1, -1)
+    # Read the data
+    model.read('C:\\Users\\jrpji\\Downloads\\dtree-data.dat.txt')
 
-# Fit the model
-model.fit(X, y)
+    # Separate features and target
+    X = model.data.iloc[:, 1:].values.astype(bool)
+    y = np.where(model.data.iloc[:, 0] == 'A', 1, -1)
 
-# Predict the class of a new instance
-new_instance = np.array([True, False, True, False, True, False, True, True, False, True]).reshape(1, -1)
-print(f"\\nPrediction for {new_instance}: {Counter(model.predict(new_instance))}")
+    # Fit the model
+    model.fit(X, y)
+
+    # Predict the class of a new instance
+    new_instance = np.array([True, False, True, False, True, False, True, True, False, True]).reshape(1, -1)
+    print(f"\\nPrediction for {new_instance}: {Counter(model.predict(new_instance))}")
+
+    # Save the model
+    with open('model.pkl', 'wb') as f:
+        pickle.dump(model, f)
+
+elif(sys.argv[1]=="predict"):
+    if(isinstance(sys.argv[2],AdaBoost)):
+        with open('model.pkl', 'rb') as f:
+            model = pickle.load(f)
+            new_instance = np.array([True, False, True, False, True, False, True, True, False, True]).reshape(1, -1)
+            print(f"\\nPrediction for {new_instance}: {Counter(model.predict(new_instance))}")
+    else:
+        b = Solution()
+        loaded_model = b.load_model(sys.argv[2])
+        sample = pd.Series(
+            {'A1': True, 'A2': False, 'A3': True, 'A4': False, 'A5': True, 'A6': False, 'A7': True, 'A8': False,
+             'A9': True,
+             'A10': False})  # Adjusted for 10 attributes
+        print(b.prediction(loaded_model, sample))
+
+
+
+
+
+
