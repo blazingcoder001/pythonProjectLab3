@@ -22,14 +22,15 @@ class Solution:
 
     def read(self, file_path):
         # Define the attributes to check for each language
-        english_attributes = [['was', 'were'], ['has', 'have'], ['a', 'the'], ['she', 'he', 'they', 'those', 'him', 'her', 'them', 'it'], ['and']]
+        english_attributes = [['was', 'were'], ['has', 'have'], ['a', 'the'],
+                              ['she', 'he', 'they', 'those', 'him', 'her', 'them', 'it'], ['and']]
         german_attributes = [['ich', 'sie'], ['und', 'oder'], ['ä', 'ö', 'ü'], ['der', 'die', 'das']]
 
         # Initialize the data list
         data = []
 
         # Open the file and read each line
-        with open(file_path, 'r',encoding='utf8') as file:
+        with open(file_path, 'r', encoding='utf8') as file:
             for line in file:
                 # Split the line into language and text
                 language, text = line.strip().split('|')
@@ -38,10 +39,8 @@ class Solution:
                 attributes = []
 
                 # Check the attributes for the corresponding language
-                # if language == 'en':
                 for attribute_group in english_attributes:
                     attributes.append(any(attribute in text.split() for attribute in attribute_group))
-                # elif language == 'nl':
                 for attribute_group in german_attributes:
                     attributes.append(any(attribute in text.split() for attribute in attribute_group))
 
@@ -49,10 +48,10 @@ class Solution:
                 attributes.append(any(len(word) >= 13 for word in text.split()))
 
                 # Append the language and attributes to the data list
-                data.append([language] + attributes)
+                data.append(attributes + [language])
 
         # Convert the data list to a DataFrame
-        self.data = pd.DataFrame(data, columns=['Class', 'A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'A9', 'A10'])
+        self.data = pd.DataFrame(data, columns=['A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'A9', 'A10', 'Class'])
         print(self.data)
 
         # Initialize the weights
@@ -103,6 +102,7 @@ class Solution:
     def run(self):
         # self.read()
         self.tree = self.build_tree(self.data.iloc[:, :-1], self.data.iloc[:, -1], self.depth)
+        print(self.tree)
         predictions = self.data.iloc[:, :-1].apply(lambda x: self.prediction(self.tree, x), axis=1)
         print(predictions)
 
