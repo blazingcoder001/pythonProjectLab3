@@ -152,9 +152,53 @@ class AdaBoost:
 
         return np.sign(y_hat)
 
-    def read(self):
-        self.data = pd.read_csv('C:\\Users\\jrpji\\Downloads\\dtree-data.dat.txt', sep=' ', header=None)
-        self.data.columns = ['A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'A9', 'A10', 'Class']
+        def read(self, file_path):
+            # Define the attributes to check for each language
+            english_attributes = [['is', 'was', 'were'], ['has', 'have'], ['a', 'the'],
+                                  ['she', 'he', 'they', 'those', 'him', 'her', 'them', 'it'], ['and']]
+            german_attributes = [['ich', 'sie'], ['und', 'oder'], ['ä', 'ö', 'ü'], ['der', 'die', 'das']]
+
+            # Initialize the data list
+            data = []
+
+            # Open the file and read each line
+            with open(file_path, 'r') as file:
+                for line in file:
+                    # Split the line into language and text
+                    language, text = line.strip().split('|')
+
+                    # Initialize the attributes list
+                    attributes = []
+
+                    # Check the attributes for the corresponding language
+                    if language == 'en':
+                        for attribute_group in english_attributes:
+                            attributes.append(int(any(attribute in text.split() for attribute in attribute_group)))
+                    elif language == 'nl':
+                        for attribute_group in german_attributes:
+                            attributes.append(int(any(attribute in text.split() for attribute in attribute_group)))
+
+                    # Check if the text contains a word with length greater than or equal to 13
+                    attributes.append(int(any(len(word) >= 13 for word in text.split())))
+
+                    # Append the language and attributes to the data list
+                    data.append([language] + attributes)
+
+            # Convert the data list to a DataFrame
+            self.data = pd.DataFrame(data,
+                                     columns=['Class', 'A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'A9', 'A10'])
+
+            # Initialize the weights
+            self.weights = np.ones(len(self.data)) / len(self.data)
+
+    # Define the AdaBoost model with 50 decision stumps
+    model = AdaBoost(S=50)
+
+    # Read the data
+    model.read('C:\\Users\\jrpji\\Downloads\\dtree-data.dat.txt')
+
+    # Print the DataFrame
+    print(model.data)
 
 # Define the AdaBoost model with 50 decision stumps
 model = AdaBoost(S=50)
