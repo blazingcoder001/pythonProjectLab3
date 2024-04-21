@@ -1,5 +1,12 @@
-import sys
 
+import sys
+sys.argv = [
+    __file__,
+    'train',
+    'E:\\ai\\train.dat.txt',
+    'C:\\Users\\jrpji\\Downloads\\best_trial.model',
+    'dt'
+]
 import pandas as pd
 import numpy as np
 from scipy.stats import entropy
@@ -15,14 +22,14 @@ class Solution:
 
     def read(self, file_path):
         # Define the attributes to check for each language
-        english_attributes = [['is', 'was', 'were'], ['has', 'have'], ['a', 'the'], ['she', 'he', 'they', 'those', 'him', 'her', 'them', 'it'], ['and']]
+        english_attributes = [['was', 'were'], ['has', 'have'], ['a', 'the'], ['she', 'he', 'they', 'those', 'him', 'her', 'them', 'it'], ['and']]
         german_attributes = [['ich', 'sie'], ['und', 'oder'], ['ä', 'ö', 'ü'], ['der', 'die', 'das']]
 
         # Initialize the data list
         data = []
 
         # Open the file and read each line
-        with open(file_path, 'r') as file:
+        with open(file_path, 'r',encoding='utf8') as file:
             for line in file:
                 # Split the line into language and text
                 language, text = line.strip().split('|')
@@ -31,12 +38,12 @@ class Solution:
                 attributes = []
 
                 # Check the attributes for the corresponding language
-                if language == 'en':
-                    for attribute_group in english_attributes:
-                        attributes.append(any(attribute in text for attribute in attribute_group))
-                elif language == 'nl':
-                    for attribute_group in german_attributes:
-                        attributes.append(any(attribute in text for attribute in attribute_group))
+                # if language == 'en':
+                for attribute_group in english_attributes:
+                    attributes.append(any(attribute in text.split() for attribute in attribute_group))
+                # elif language == 'nl':
+                for attribute_group in german_attributes:
+                    attributes.append(any(attribute in text.split() for attribute in attribute_group))
 
                 # Check if the text contains a word with length greater than or equal to 13
                 attributes.append(any(len(word) >= 13 for word in text.split()))
@@ -46,6 +53,7 @@ class Solution:
 
         # Convert the data list to a DataFrame
         self.data = pd.DataFrame(data, columns=['Class', 'A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'A9', 'A10'])
+        print(self.data)
 
         # Initialize the weights
         self.weights = np.ones(len(self.data)) / len(self.data)
@@ -93,7 +101,7 @@ class Solution:
         return self.prediction(tree[attribute][value], sample)
 
     def run(self):
-        self.read()
+        # self.read()
         self.tree = self.build_tree(self.data.iloc[:, :-1], self.data.iloc[:, -1], self.depth)
         predictions = self.data.iloc[:, :-1].apply(lambda x: self.prediction(self.tree, x), axis=1)
         print(predictions)
@@ -213,12 +221,16 @@ class AdaBoost:
 
 if(sys.argv[1]=="train" and sys.argv[4]=="dt"):
     a = Solution()
+    print(sys.argv[2])
+    a.read(sys.argv[2])
     a.run()
+
+
 elif(sys.argv[1]=="train" and sys.argv[4]=="ada"):
     model = AdaBoost(S=50)
 
     # Read the data
-    model.read('C:\\Users\\jrpji\\Downloads\\dtree-data.dat.txt')
+    model.read(sys.argv[2])
 
     # Separate features and target
     X = model.data.iloc[:, 1:].values.astype(bool)
@@ -226,10 +238,6 @@ elif(sys.argv[1]=="train" and sys.argv[4]=="ada"):
 
     # Fit the model
     model.fit(X, y)
-
-    # Predict the class of a new instance
-    new_instance = np.array([True, False, True, False, True, False, True, True, False, True]).reshape(1, -1)
-    print(f"\\nPrediction for {new_instance}: {Counter(model.predict(new_instance))}")
 
     # Save the model
     with open('model.pkl', 'wb') as f:
