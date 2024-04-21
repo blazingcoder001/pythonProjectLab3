@@ -89,39 +89,92 @@ print(b.prediction(loaded_model, sample))
 
 
 
+#Adaboost code starts here
+
+class DecisionStump:
+    def __init__(self):
+        self.polarity = 1
+        self.feature_index = None
+        self.threshold = None
+        self.alpha = None
+
+class AdaBoost:
+    def __init__(self, S=50):
+        self.S = S
+
+    def fit(self, X, y):
+        m, n = X.shape
+
+        W = np.full(m, 1/m)
+        self.clfs = []
+
+        for _ in range(self.S):
+            clf = DecisionStump()
+
+            min_error = float('inf')
+            for feature in range(n):
+                feature_values = np.sort(np.unique(X[:, feature]))
+                thresholds = (feature_values[:-1] + feature_values[1:]) / 2
+                for threshold in thresholds:
+                    for polarity in [1, -1]:
+                        y_hat = np.ones(len(y))
+                        y_hat[polarity * X[:, feature] < polarity * threshold] = -1
+                        error = W[(y_hat != y)].sum()
+
+                        if error < min_error:
+                            clf.polarity = polarity
+                            clf.threshold = threshold
+                            clf.feature_index = feature
+                            min_error = error
+
+            eps = 1e-10
+            clf.alpha = 0.5 * np.log((1.0 - min_error + eps) / (min_error + eps))
+
+            predictions = np.ones(m)
+            negative_idx = (clf.polarity * X[:, clf.feature_index] < clf.polarity * clf.threshold)
+            predictions[negative_idx] = -1
+
+            W *= np.exp(-clf.alpha * y * predictions)
+            W /= np.sum(W)
+
+            self.clfs.append(clf)
+
+    def predict(self, X):
+        m, _ = X.shape
+        y_hat = np.zeros(m)
+        for clf in self.clfs:
+            predictions = np.ones(m)
+            negative_idx = (clf.polarity * X[:, clf.feature_index] < clf.polarity * clf.threshold)
+            predictions[negative_idx] = -1
+            y_hat += clf.alpha * predictions
+
+        return np.sign(y_hat)
+
 # Define the data
 data = np.array([
-    [0, 0, 1, 0, 0, 'B'],
-    [1, 0, 1, 0, 1, 'B'],
-    [1, 1, 1, 0, 0, 'A'],
-    [0, 1, 0, 0, 1, 'B'],
-    [1, 1, 1, 0, 1, 'B'],
-    [0, 1, 1, 0, 0, 'B'],
-    [1, 1, 0, 0, 1, 'B'],
-    [1, 1, 1, 0, 1, 'B'],
-    [1, 0, 1, 0, 1, 'B'],
-    [1, 0, 1, 0, 1, 'B']
+    [0, 0, 1, 0, 0, 0, 1, 1, 0, 1, 'B'],
+    [1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 'B'],
+    [1, 1, 1, 0, 0, 0, 1, 1, 0, 1, 'A'],
+    [0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 'B'],
+    [1, 1, 1, 0, 1, 0, 1, 1, 0, 1, 'B'],
+    [0, 1, 1, 0, 0, 0, 1, 1, 0, 1, 'B'],
+    [1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 'B'],
+    [1, 1, 1, 0, 1, 0, 1, 1, 0, 1, 'B'],
+    [1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 'B'],
+    [1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 'B']
 ])
 
 # Separate features and target
 X = data[:, :-1].astype(int)
-y = data[:, -1]
-
-# Encode the target variable
-le = LabelEncoder()
-y = le.fit_transform(y)
+y = np.where(data[:, -1] == 'A', 1, -1)
 
 # Define the AdaBoost model with 50 decision stumps
-model = AdaBoostClassifier(DecisionTreeClassifier(max_depth=1), n_estimators=50)
+model = AdaBoost(S=50)
 
 # Fit the model
 model.fit(X, y)
 
-# Print the feature importances
-print("Feature importances:")
-for i, importance in enumerate(model.feature_importances_):
-    print(f"Attribute {i+1}: {importance}")
-
 # Predict the class of a new instance
-new_instance = np.array([1, 0, 1, 0, 1]).reshape(1, -1)
-print(f"\\nPrediction for {new_instance}: {le.inverse_transform(model.predict(new_instance))}")
+new_instance = np.array([1, 0, 1, 0, 1, 0, 1, 1, 0, 1]).reshape(1, -1)
+print(f"\\nPrediction for {new_instance}: {Counter(model.predict(new_instance))}")
+
