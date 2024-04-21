@@ -4,7 +4,7 @@ sys.argv = [
     __file__,
     'predict',
     'E:\\ai\\finalized_model.sav',
-    'E:\\ai\\testfile.dat',
+    'E:\\ai\\testfile_2.dat',
 ]
 import pandas as pd
 import numpy as np
@@ -21,9 +21,13 @@ class Solution:
 
     def read(self, file_path,option):
         # Define the attributes to check for each language
-        english_attributes = [['was', 'were'], ['has', 'have'], ['a', 'the'],
-                              ['she', 'he', 'they', 'those', 'him', 'her', 'them', 'it','this','that'], ['and']]
-        german_attributes = [['ich', 'sie'], ['und', 'oder'], ['ä', 'ö', 'ü'], ['der', 'die', 'das']]
+        english_attributes = [['is', 'were', 'on', 'with', 'but', 'by', 'who', 'why', 'will', 'would', 'you', 'could'],
+                              ['has', 'have', 'can', 'do', 'for', 'we', 'what', 'which'],
+                              ['the', 'from', 'him', 'his', 'if', 'my', 'not'],
+                              ['she', 'he', 'they', 'those', 'him', 'her', 'them', 'it'],
+                              ['and', 'of', 'or', 'our', 'she', 'that', 'this', 'to', 'us']]
+
+        german_attributes = [['ich', 'sie','du','er','es','ich','sie','wir','auf','aus','durch','für','gegen','hinter','nach','neben', 'unter', 'vor', 'zu'], ['aber','damit','ob','weil','wenn','und', 'oder'], ['warum','wer','wie','wo','woher','wohin','ä', 'ö', 'ü'], ['der', 'das','dein','mein','my']]
 
         # Initialize the data list
         data = []
@@ -154,8 +158,16 @@ class AdaBoost:
 
     def read(self, file_path):
         # Define the attributes to check for each language
-        english_attributes = [['is', 'was', 'were','on','with','but','by','who','why','will','would','you','could'], ['has', 'have','can','do','for','we','what','which'], ['the','from','him','his','if','my','not'], ['she', 'he', 'they', 'those', 'him', 'her', 'them', 'it'], ['and','of','or','our','she','that','this','to','us']]
-        german_attributes = [['ich', 'sie'], ['und', 'oder'], ['ä', 'ö', 'ü'], ['der', 'die', 'das']]
+        english_attributes = [['is', 'were', 'on', 'with', 'but', 'by', 'who', 'why', 'will', 'would', 'you', 'could'],
+                              ['has', 'have', 'can', 'do', 'for', 'we', 'what', 'which'],
+                              ['the', 'from', 'him', 'his', 'if', 'my', 'not'],
+                              ['she', 'he', 'they', 'those', 'him', 'her', 'them', 'it'],
+                              ['and', 'of', 'or', 'our', 'she', 'that', 'this', 'to', 'us']]
+
+        german_attributes = [
+            ['ich', 'sie', 'du', 'er', 'es', 'ich', 'sie', 'wir', 'auf', 'aus', 'durch', 'für', 'gegen', 'hinter',
+             'nach', 'neben', 'unter', 'vor', 'zu'], ['aber', 'damit', 'ob', 'weil', 'wenn', 'und', 'oder'],
+            ['warum', 'wer', 'wie', 'wo', 'woher', 'wohin', 'ä', 'ö', 'ü'], ['der', 'das', 'dein', 'mein', 'my']]
 
         # Initialize the data list
         data = []
@@ -274,8 +286,8 @@ elif(sys.argv[1]=="predict"):
         b.read(sys.argv[3],"predict")
         # print(b.prediction(loaded_model, sample))
         predictions = b.data.iloc[:, :].apply(lambda x: b.prediction(loaded_model, x), axis=1)
-        print(predictions)
-
+        for each_predictions in predictions:
+            print(each_predictions)
 
 
 
