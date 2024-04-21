@@ -22,7 +22,7 @@ class Solution:
     def read(self, file_path,option):
         # Define the attributes to check for each language
         english_attributes = [['was', 'were'], ['has', 'have'], ['a', 'the'],
-                              ['she', 'he', 'they', 'those', 'him', 'her', 'them', 'it'], ['and']]
+                              ['she', 'he', 'they', 'those', 'him', 'her', 'them', 'it','this','that'], ['and']]
         german_attributes = [['ich', 'sie'], ['und', 'oder'], ['ä', 'ö', 'ü'], ['der', 'die', 'das']]
 
         # Initialize the data list
@@ -154,7 +154,7 @@ class AdaBoost:
 
     def read(self, file_path):
         # Define the attributes to check for each language
-        english_attributes = [['is', 'was', 'were'], ['has', 'have'], ['a', 'the'], ['she', 'he', 'they', 'those', 'him', 'her', 'them', 'it'], ['and']]
+        english_attributes = [['is', 'was', 'were','on','with','but','by','who','why','will','would','you','could'], ['has', 'have','can','do','for','we','what','which'], ['the','from','him','his','if','my','not'], ['she', 'he', 'they', 'those', 'him', 'her', 'them', 'it'], ['and','of','or','our','she','that','this','to','us']]
         german_attributes = [['ich', 'sie'], ['und', 'oder'], ['ä', 'ö', 'ü'], ['der', 'die', 'das']]
 
         # Initialize the data list
