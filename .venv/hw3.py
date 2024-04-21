@@ -1,10 +1,18 @@
 
 import sys
+# sys.argv = [
+#     __file__,
+#     'predict',
+#     'E:\\ai\\train.dat.txt',
+#     'E:\\ai\\finalized_model_ada.sav',
+#     'ada'
+# ]
 sys.argv = [
     __file__,
     'predict',
-    'E:\\ai\\finalized_model.sav',
+    'E:\\ai\\finalized_model_ada.sav',
     'E:\\ai\\testfile_2.dat',
+
 ]
 import pandas as pd
 import numpy as np
@@ -156,7 +164,7 @@ class AdaBoost:
         self.data = None
         self.weights = None
 
-    def read(self, file_path):
+    def read(self, file_path,option):
         # Define the attributes to check for each language
         english_attributes = [['is', 'were', 'on', 'with', 'but', 'by', 'who', 'why', 'will', 'would', 'you', 'could'],
                               ['has', 'have', 'can', 'do', 'for', 'we', 'what', 'which'],
@@ -171,35 +179,57 @@ class AdaBoost:
 
         # Initialize the data list
         data = []
+        if (option == "train"):
+            # Open the file and read each line
+            with open(file_path, 'r', encoding='utf8') as file:
 
-        # Open the file and read each line
-        with open(file_path, 'r') as file:
-            for line in file:
-                # Split the line into language and text
-                language, text = line.strip().split('|')
+                for line in file:
+                    # Split the line into language and text
+                    language, text = line.strip().split('|')
 
-                # Initialize the attributes list
-                attributes = []
+                    # Initialize the attributes list
+                    attributes = []
 
-                # Check the attributes for the corresponding language
-                if language == 'en':
+                    # Check the attributes for the corresponding language
                     for attribute_group in english_attributes:
-                        attributes.append(any(attribute in text for attribute in attribute_group))
-                elif language == 'nl':
+                        attributes.append(any(attribute in text.split() for attribute in attribute_group))
                     for attribute_group in german_attributes:
-                        attributes.append(any(attribute in text for attribute in attribute_group))
+                        attributes.append(any(attribute in text.split() for attribute in attribute_group))
 
-                # Check if the text contains a word with length greater than or equal to 13
-                attributes.append(any(len(word) >= 13 for word in text.split()))
+                    # Check if the text contains a word with length greater than or equal to 13
+                    attributes.append(any(len(word) >= 13 for word in text.split()))
 
-                # Append the language and attributes to the data list
-                data.append([language] + attributes)
+                    # Append the language and attributes to the data list
+                    data.append([language]+attributes)
 
-        # Convert the data list to a DataFrame
-        self.data = pd.DataFrame(data, columns=['Class', 'A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'A9', 'A10'])
+            # Convert the data list to a DataFrame
+            self.data = pd.DataFrame(data,
+                                     columns=['A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'A9', 'A10', 'Class'])
+            # print(self.data)
 
-        # Initialize the weights
-        self.weights = np.ones(len(self.data)) / len(self.data)
+            # Initialize the weights
+            self.weights = np.ones(len(self.data)) / len(self.data)
+        else:
+            with open(file_path, 'r', encoding='utf8') as file:
+
+                for line in file:
+                    text = line
+                    attributes = []
+
+                    # Check the attributes for the corresponding language
+                    for attribute_group in english_attributes:
+                        attributes.append(any(attribute in text.split() for attribute in attribute_group))
+                    for attribute_group in german_attributes:
+                        attributes.append(any(attribute in text.split() for attribute in attribute_group))
+
+                    # Check if the text contains a word with length greater than or equal to 13
+                    attributes.append(any(len(word) >= 13 for word in text.split()))
+
+                    # Append the language and attributes to the data list
+                    data.append(attributes)
+
+            # Convert the data list to a DataFrame
+            self.data = pd.DataFrame(data, columns=['A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'A9', 'A10'])
 
     def fit(self, X, y):
         m, n = X.shape
@@ -261,7 +291,7 @@ elif(sys.argv[1]=="train" and sys.argv[4]=="ada"):
     model = AdaBoost(S=50)
 
     # Read the data
-    model.read(sys.argv[2])
+    model.read(sys.argv[2],"train")
 
     # Separate features and target
     X = model.data.iloc[:, 1:].values.astype(bool)
@@ -271,23 +301,33 @@ elif(sys.argv[1]=="train" and sys.argv[4]=="ada"):
     model.fit(X, y)
 
     # Save the model
-    with open('model.pkl', 'wb') as f:
+    with open(sys.argv[3], 'wb') as f:
         pickle.dump(model, f)
 
 elif(sys.argv[1]=="predict"):
-    if(isinstance(sys.argv[2],AdaBoost)):
-        with open('model.pkl', 'rb') as f:
-            model = pickle.load(f)
-            new_instance = np.array([True, False, True, False, True, False, True, True, False, True]).reshape(1, -1)
-            print(f"\\nPrediction for {new_instance}: {Counter(model.predict(new_instance))}")
-    else:
-        b = Solution()
-        loaded_model = b.load_model(sys.argv[2])
-        b.read(sys.argv[3],"predict")
-        # print(b.prediction(loaded_model, sample))
-        predictions = b.data.iloc[:, :].apply(lambda x: b.prediction(loaded_model, x), axis=1)
-        for each_predictions in predictions:
-            print(each_predictions)
+    with open(sys.argv[2], 'rb') as file:
+        loaded_model = pickle.load(file)
+        if(isinstance(loaded_model,AdaBoost)):
+        #     new_instance = np.array([True, False, True, False, True, False, True, True, False, True]).reshape(1, -1)
+        #     print(f"\\nPrediction for {new_instance}: {Counter(model.predict(new_instance))}")
+            b = AdaBoost(S=50)
+            with open(sys.argv[2], 'rb') as f:
+                model = pickle.load(f)
+                b.read((sys.argv[3]),"predict")
+                # print(b.data)
+                predictions = b.data.iloc[:, :].apply(lambda x: model.predict(np.array(x).reshape(1,-1)), axis=1)
+                for each_predictions in predictions:
+                    print(each_predictions)
+        #         # print(f"\\nPrediction for {new_instance}: {Counter(model.predict(new_instance))}")
+
+        else:
+            b = Solution()
+            loaded_model = b.load_model(sys.argv[2])
+            b.read(sys.argv[3],"predict")
+            # print(b.prediction(loaded_model, sample))
+            predictions = b.data.iloc[:, :].apply(lambda x: b.prediction(loaded_model, x), axis=1)
+            for each_predictions in predictions:
+                print(each_predictions)
 
 
 
