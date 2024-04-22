@@ -2,7 +2,7 @@
 import sys
 # sys.argv = [
 #     __file__,
-#     'predict',
+#     'train',
 #     'E:\\ai\\train.dat.txt',
 #     'E:\\ai\\finalized_model_ada.sav',
 #     'ada'
@@ -416,29 +416,18 @@ class AdaBoost:
         epsilon = 1e-7  # Small positive number to avoid division by zero
 
         for k in range(K):
-            # Train a weak learner
             h = self.train_weak_learner()
             current_best=h[0]
             error=h[1]
 
-            # # Compute the total error
-            # error = sum(self.weights[i] for i in range(N) if h(self.data[i]) != self.data[i][-1])
-            #
-            # # Break if error is too high
-            # if error > 0.5:
-            #     break
+
             stump = lambda x: 'EN' if x[current_best] else 'DE'
 
             if error>0.5:
                 break
 
-            # Avoid division by zero
             error = max(epsilon, min(1 - epsilon, error))
 
-            # Update the weights of the examples
-            # for i in range(N):
-            #     if h(self.data[i]) == self.data[i][-1]:
-            #         self.weights[i] *= error / (1 - error)
             for i in range(N):
                 if stump(self.data.iloc[i]) != self.data.iloc[i][-1]:
                     self.weights[i] *= error / (1 - error)
@@ -455,6 +444,7 @@ class AdaBoost:
             self.hypotheses.append(h)
             self.hypothesis_weights.append(z)
 
+
     def train_weak_learner(self):
         best_stump = None
         best_error = float('inf')
@@ -467,7 +457,7 @@ class AdaBoost:
 
             # Compute the weighted error of the stump
             error = sum(
-                self.weights[i] for i in range(len(self.data)) if stump(self.data.iloc[i]) != self.data.iloc[i][-1])
+                self.weights[i] for i in range(len(self.data)) if stump(self.data.iloc[i]) != self.data.iloc[i,-1])
 
             # If this stump has the lowest error so far, store it as the best stump
             # if error < best_error:
@@ -483,14 +473,79 @@ class AdaBoost:
         # The final classifier is a weighted combination of the hypotheses
         return sum(self.hypothesis_weights[k] * self.hypothesesk for k in range(len(self.hypotheses)))
 
-# Create an AdaBoost instance
-adaboost = AdaBoost()
+    def predict(self,X):
+        enwei=0
+        dlwei=0
+        print(self.hypotheses)
+        for i in self.hypotheses:
+            if(X[int(i[1:])-1]==True):
+                enwei=enwei+self.hypothesis_weights
+            else:
+                dlwei=dlwei+self.hypothesis_weights
+        if(enwei>dlwei):
+            print("en")
+        else:
+            print("nl")
 
-# Read the training data
-adaboost.read('training_data.txt', 'train')
 
-# Train the AdaBoost model with 50 stumps
-adaboost.train(50)
+
+# # Create an AdaBoost instance
+# adaboost = AdaBoost()
+#
+# # Read the training data
+# adaboost.read('training_data.txt', 'train')
+#
+# # Train the AdaBoost model with 50 stumps
+# adaboost.train(50)
 
 # Classify a new example
-print(adaboost.classify(new_example))
+# print(adaboost.classify(new_example))
+
+if(sys.argv[1]=="train" and sys.argv[4]=="dt"):
+    a = Solution()
+    a.read(sys.argv[2],"train")
+    a.run()
+
+
+elif(sys.argv[1]=="train" and sys.argv[4]=="ada"):
+    model = AdaBoost()
+
+
+    # Read the data
+    model.read(sys.argv[2],"train")
+
+    model.train(50)
+
+    # Separate features and target
+    X = model.data.iloc[:, 1:].values.astype(bool)
+    y = np.where(model.data.iloc[:, 0] == 'A', 1, -1)
+
+
+    # Save the model
+    with open(sys.argv[3], 'wb') as f:
+        pickle.dump(model, f)
+
+elif(sys.argv[1]=="predict"):
+    with open(sys.argv[2], 'rb') as file:
+        loaded_model = pickle.load(file)
+        if(isinstance(loaded_model,AdaBoost)):
+        #     new_instance = np.array([True, False, True, False, True, False, True, True, False, True]).reshape(1, -1)
+        #     print(f"\\nPrediction for {new_instance}: {Counter(model.predict(new_instance))}")
+            b = AdaBoost()
+            with open(sys.argv[2], 'rb') as f:
+                model = pickle.load(f)
+                b.read((sys.argv[3]),"predict")
+                # print(b.data)
+                predictions = b.data.iloc[:, :].apply(lambda x: model.predict(x))
+                # for each_predictions in predictions:
+                #     print(each_predictions)
+        #         # print(f"\\nPrediction for {new_instance}: {Counter(model.predict(new_instance))}")
+
+        else:
+            b = Solution()
+            loaded_model = b.load_model(sys.argv[2])
+            b.read(sys.argv[3],"predict")
+            # print(b.prediction(loaded_model, sample))
+            predictions = b.data.iloc[:, :].apply(lambda x: b.prediction(loaded_model, x), axis=1)
+            for each_predictions in predictions:
+                print(each_predictions)
