@@ -418,21 +418,32 @@ class AdaBoost:
         for k in range(K):
             # Train a weak learner
             h = self.train_weak_learner()
+            current_best=h[0]
+            error=h[1]
 
-            # Compute the total error
-            error = sum(self.weights[i] for i in range(N) if h(self.data[i]) != self.data[i][-1])
+            # # Compute the total error
+            # error = sum(self.weights[i] for i in range(N) if h(self.data[i]) != self.data[i][-1])
+            #
+            # # Break if error is too high
+            # if error > 0.5:
+            #     break
+            stump = lambda x: 'EN' if x[current_best] else 'DE'
 
-            # Break if error is too high
-            if error > 0.5:
+            if error>0.5:
                 break
 
             # Avoid division by zero
             error = max(epsilon, min(1 - epsilon, error))
 
             # Update the weights of the examples
+            # for i in range(N):
+            #     if h(self.data[i]) == self.data[i][-1]:
+            #         self.weights[i] *= error / (1 - error)
             for i in range(N):
-                if h(self.data[i]) == self.data[i][-1]:
+                if stump(self.data.iloc[i]) != self.data.iloc[i][-1]:
                     self.weights[i] *= error / (1 - error)
+
+
 
             # Normalize the weights
             self.weights /= sum(self.weights)
@@ -448,17 +459,6 @@ class AdaBoost:
         best_stump = None
         best_error = float('inf')
 
-        # Define the attributes to check for each language
-        english_attributes = [['is', 'were', 'on', 'with', 'but', 'by', 'who', 'why', 'will', 'would', 'you', 'could'],
-                              ['has', 'have', 'can', 'do', 'for', 'we', 'what', 'which'],
-                              ['the', 'from', 'him', 'his', 'if', 'my', 'not'],
-                              ['she', 'he', 'they', 'those', 'him', 'her', 'them', 'it'],
-                              ['and', 'of', 'or', 'our', 'she', 'that', 'this', 'to', 'us']]
-
-        german_attributes = [
-            ['ich', 'sie', 'du', 'er', 'es', 'ich', 'sie', 'wir', 'auf', 'aus', 'durch', 'für', 'gegen', 'hinter',
-             'nach', 'neben', 'unter', 'vor', 'zu'], ['aber', 'damit', 'ob', 'weil', 'wenn', 'und', 'oder'],
-            ['warum', 'wer', 'wie', 'wo', 'woher', 'wohin', 'ä', 'ö', 'ü'], ['der', 'das', 'dein', 'mein', 'my']]
 
         # For each attribute in the data
         for attribute in self.data.columns[:-1]:#There is a small mistake here, the attribute does not mark which attribute it is.
@@ -470,11 +470,14 @@ class AdaBoost:
                 self.weights[i] for i in range(len(self.data)) if stump(self.data.iloc[i]) != self.data.iloc[i][-1])
 
             # If this stump has the lowest error so far, store it as the best stump
-            if error < best_error:
-                best_stump = stump
-                best_error = error
+            # if error < best_error:
+            #     best_stump = stump
+            #     best_error = error
+            if error<best_error:
+                best_stump=attribute
+                best_error=error
 
-        return best_stump
+        return (best_stump,best_error)
 
     def classify(self, x):
         # The final classifier is a weighted combination of the hypotheses
