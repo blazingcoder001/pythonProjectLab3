@@ -373,7 +373,7 @@ class AdaBoost:
                     for attribute_group in english_attributes:
                         attributes.append(any(attribute in text.split() for attribute in attribute_group))
                     for attribute_group in german_attributes:
-                        attributes.append(any(attribute in text.split() for attribute in attribute_group))
+                        attributes.append(all(attribute not in text.split() for attribute in attribute_group))
 
                     # Check if the text contains a word with length greater than or equal to 13
                     attributes.append(any(len(word) >= 13 for word in text.split()))
@@ -448,21 +448,31 @@ class AdaBoost:
         best_stump = None
         best_error = float('inf')
 
+        # Define the attributes to check for each language
+        english_attributes = [['is', 'were', 'on', 'with', 'but', 'by', 'who', 'why', 'will', 'would', 'you', 'could'],
+                              ['has', 'have', 'can', 'do', 'for', 'we', 'what', 'which'],
+                              ['the', 'from', 'him', 'his', 'if', 'my', 'not'],
+                              ['she', 'he', 'they', 'those', 'him', 'her', 'them', 'it'],
+                              ['and', 'of', 'or', 'our', 'she', 'that', 'this', 'to', 'us']]
+
+        german_attributes = [
+            ['ich', 'sie', 'du', 'er', 'es', 'ich', 'sie', 'wir', 'auf', 'aus', 'durch', 'für', 'gegen', 'hinter',
+             'nach', 'neben', 'unter', 'vor', 'zu'], ['aber', 'damit', 'ob', 'weil', 'wenn', 'und', 'oder'],
+            ['warum', 'wer', 'wie', 'wo', 'woher', 'wohin', 'ä', 'ö', 'ü'], ['der', 'das', 'dein', 'mein', 'my']]
+
         # For each attribute in the data
-        for attribute in self.data.columns[:-1]:
-            # For each value of the attribute
-            for value in [True, False]:
-                # Create a stump that classifies examples as positive if the attribute has the given value
-                stump = lambda x: x[attribute] == value
+        for attribute in self.data.columns[:-1]:#There is a small mistake here, the attribute does not mark which attribute it is.
+            # Create a stump that classifies examples based on the attribute
+            stump = lambda x: 'EN' if x[attribute] else 'DE'
 
-                # Compute the weighted error of the stump
-                error = sum(
-                    self.weights[i] for i in range(len(self.data)) if stump(self.data.iloc[i]) != self.data.iloc[i][-1])
+            # Compute the weighted error of the stump
+            error = sum(
+                self.weights[i] for i in range(len(self.data)) if stump(self.data.iloc[i]) != self.data.iloc[i][-1])
 
-                # If this stump has the lowest error so far, store it as the best stump
-                if error < best_error:
-                    best_stump = stump
-                    best_error = error
+            # If this stump has the lowest error so far, store it as the best stump
+            if error < best_error:
+                best_stump = stump
+                best_error = error
 
         return best_stump
 
