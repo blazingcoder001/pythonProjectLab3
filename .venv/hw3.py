@@ -1,19 +1,20 @@
 
 import sys
-# sys.argv = [
-#     __file__,
-#     'train',
-#     'E:\\ai\\train.dat.txt',
-#     'E:\\ai\\finalized_model_ada.sav',
-#     'ada'
-# ]
+import math
 sys.argv = [
     __file__,
-    'predict',
+    'train',
+    'E:\\ai\\train.dat.txt',
     'E:\\ai\\finalized_model_ada.sav',
-    'E:\\ai\\testfile_2.dat',
-
+    'ada'
 ]
+# sys.argv = [
+#     __file__,
+#     'predict',
+#     'E:\\ai\\finalized_model_ada.sav',
+#     'E:\\ai\\testfile_2.dat',
+#
+# ]
 import pandas as pd
 import numpy as np
 from scipy.stats import entropy
@@ -376,21 +377,26 @@ class AdaBoost:
                         attributes.append(all(attribute not in text.split() for attribute in attribute_group))
 
                     # Check if the text contains a word with length greater than or equal to 13
-                    attributes.append(any(len(word) >= 13 for word in text.split()))
+                    attributes.append(any(len(word) <= 13 for word in text.split()))
 
                     # Append the language and attributes to the data list
                     data.append([language] + attributes)
+                self.data = pd.DataFrame(data,
+                                         columns=['Class','A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'A9', 'A10'])
+                self.X = self.data.iloc[:, 1:]  # Keep X as a DataFrame
+                self.y = np.where(self.data.iloc[:, 0] == 'en', 1, 0)
+                self.weights = np.ones(len(self.data)) / len(self.data)
 
-            # Convert the data list to a DataFrame
-            self.data = pd.DataFrame(data,
-                                     columns=['A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'A9', 'A10', 'Class'])
+
+
+        else:
+
+
             # print(self.data)
 
             # Initialize the weights
-            self.weights = np.ones(len(self.data)) / len(self.data)
-            self.X = self.data.iloc[:, 1:].values.astype(bool)
-            self.y = np.where(self.data.iloc[:, 0] == 'en', 1, -1)
-        else:
+            # self.weights = np.ones(len(self.data)) / len(self.data)
+
             with open(file_path, 'r', encoding='utf8') as file:
 
                 for line in file:
@@ -401,16 +407,18 @@ class AdaBoost:
                     for attribute_group in english_attributes:
                         attributes.append(any(attribute in text.split() for attribute in attribute_group))
                     for attribute_group in german_attributes:
-                        attributes.append(any(attribute in text.split() for attribute in attribute_group))
+                        attributes.append(all(attribute not in text.split() for attribute in attribute_group))
 
                     # Check if the text contains a word with length greater than or equal to 13
-                    attributes.append(any(len(word) >= 13 for word in text.split()))
+                    attributes.append(any(len(word) <= 13 for word in text.split()))
 
                     # Append the language and attributes to the data list
                     data.append(attributes)
 
             # Convert the data list to a DataFrame
             self.data = pd.DataFrame(data, columns=['A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'A9', 'A10'])
+            # X = self.data.iloc[:, 1:]  # Keep X as a DataFrame
+            # y = np.where(self.data.iloc[:, 0] == 'en', 1, -1)
 
 
     def train(self, K):
@@ -424,16 +432,18 @@ class AdaBoost:
 
 
             # stump = lambda x: 'EN' if x[current_best] else 'DE'
-            stump = lambda x: 1 if x[best_attribute] else -1
+            stump = lambda x: 1 if x.iloc[current_best] else 0
 
-            if error>0.5:
-                break
+
 
             # error = max(epsilon, min(1 - epsilon, error))
-            error = sum(self.weights[i] for i in range(len(self.X)) if stump(self.X[i]) != self.y[i])
+            error = sum(self.weights[i] for i in range(len(self.X)) if stump(self.X[self.X.columns[i]]) != self.y[i])
+
+            if error > 0.5:
+                break
 
             for i in range(N):
-                if stump(self.data.iloc[i]) != self.data.iloc[i][-1]:
+                if stump(self.data.iloc[i]) != self.data.iloc[i,-1]:
                     self.weights[i] *= error / (1 - error)
 
 
@@ -451,37 +461,31 @@ class AdaBoost:
 
     # def entropy(self, series):
     #     return entropy(series.value_counts(normalize=True), base=2)
-    def weighted_entropy(self, y, weights):
+    def weighted_entropy(self, y,weights):
+        # print(self.weights)
+        # print(y)
+        # print(y)
+        # print(self.weights)
         weighted_counts = np.bincount(y, weights=weights)
         probabilities = weighted_counts / np.sum(weighted_counts)
         return entropy(probabilities, base=2)
 
     def conditional_entropy(self, X, y):
-        y_entropy = self.weighted_entropy(y)
+        y_entropy = self.weighted_entropy(y,self.weights)
         values, counts = np.unique(X, return_counts=True)
         weighted_entropy = sum(
-            [(counts[i] / np.sum(counts)) * self.entropy(y[X == value]) for i, value in enumerate(values)])
+            [(counts[i] / np.sum(counts)) * self.weighted_entropy(y[X == value],self.weights[X==value]) for i, value in enumerate(values)])
 
         return y_entropy - weighted_entropy
 
     def information_gain(self, X, y):
+        # print(y)
         info_gain = [self.conditional_entropy(X[col], y) for col in X.columns]
-        # return X.columns[np.argmax(info_gain)]
-        return np.argmax((info_gain))
+        return np.argmax(info_gain)
 
     def train_weak_learner(self):
-        # Separate features and target
-        # X = self.data.iloc[:, 1:].values.astype(bool)
-        # y = np.where(self.data.iloc[:, 0] == 'en', 1, -1)
 
-        # Find the attribute with the highest information gain
-        best_attribute = self.information_gain(X, y)
-
-        # Create a weak learner (stump) based on the best attribute
-        # stump = lambda x: 1 if x[best_attribute] else -1
-
-        # Compute the error of the weak learner
-        # error = sum(self.weights[i] for i in range(len(X)) if stump(X[i]) != y[i])
+        best_attribute = self.information_gain(self.X, self.y)
 
         return best_attribute
 
@@ -494,7 +498,7 @@ class AdaBoost:
         dlwei=0
         print(self.hypotheses)
         for i in self.hypotheses:
-            if(X[int(i[1:])-1]==True):
+            if(X[i]==1):
                 enwei=enwei+self.hypothesis_weights
             else:
                 dlwei=dlwei+self.hypothesis_weights
@@ -534,7 +538,7 @@ elif(sys.argv[1]=="train" and sys.argv[4]=="ada"):
 
     # Separate features and target
     X = model.data.iloc[:, 1:].values.astype(bool)
-    y = np.where(model.data.iloc[:, 0] == 'A', 1, -1)
+    y = np.where(model.data.iloc[:, 0] == 'A', 1, 0)
 
 
     # Save the model
