@@ -388,6 +388,8 @@ class AdaBoost:
 
             # Initialize the weights
             self.weights = np.ones(len(self.data)) / len(self.data)
+            self.X = self.data.iloc[:, 1:].values.astype(bool)
+            self.y = np.where(self.data.iloc[:, 0] == 'en', 1, -1)
         else:
             with open(file_path, 'r', encoding='utf8') as file:
 
@@ -417,16 +419,18 @@ class AdaBoost:
 
         for k in range(K):
             h = self.train_weak_learner()
-            current_best=h[0]
-            error=h[1]
+            current_best=h
+            # error=h[1]
 
 
-            stump = lambda x: 'EN' if x[current_best] else 'DE'
+            # stump = lambda x: 'EN' if x[current_best] else 'DE'
+            stump = lambda x: 1 if x[best_attribute] else -1
 
             if error>0.5:
                 break
 
-            error = max(epsilon, min(1 - epsilon, error))
+            # error = max(epsilon, min(1 - epsilon, error))
+            error = sum(self.weights[i] for i in range(len(self.X)) if stump(self.X[i]) != self.y[i])
 
             for i in range(N):
                 if stump(self.data.iloc[i]) != self.data.iloc[i][-1]:
@@ -462,23 +466,24 @@ class AdaBoost:
 
     def information_gain(self, X, y):
         info_gain = [self.conditional_entropy(X[col], y) for col in X.columns]
-        return X.columns[np.argmax(info_gain)]
+        # return X.columns[np.argmax(info_gain)]
+        return np.argmax((info_gain))
 
     def train_weak_learner(self):
         # Separate features and target
-        X = self.data.iloc[:, 1:].values.astype(bool)
-        y = np.where(self.data.iloc[:, 0] == 'en', 1, -1)
+        # X = self.data.iloc[:, 1:].values.astype(bool)
+        # y = np.where(self.data.iloc[:, 0] == 'en', 1, -1)
 
         # Find the attribute with the highest information gain
         best_attribute = self.information_gain(X, y)
 
         # Create a weak learner (stump) based on the best attribute
-        stump = lambda x: 'EN' if x[best_attribute] else 'DE'
+        # stump = lambda x: 1 if x[best_attribute] else -1
 
         # Compute the error of the weak learner
-        error = sum(self.weights[i] for i in range(len(X)) if stump(X[i]) != y[i])
+        # error = sum(self.weights[i] for i in range(len(X)) if stump(X[i]) != y[i])
 
-        return stump, error
+        return best_attribute
 
     def classify(self, x):
         # The final classifier is a weighted combination of the hypotheses
