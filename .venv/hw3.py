@@ -1,20 +1,20 @@
 
 import sys
 import math
-sys.argv = [
-    __file__,
-    'train',
-    'E:\\ai\\train.dat.txt',
-    'E:\\ai\\finalized_model_ada.sav',
-    'ada'
-]
 # sys.argv = [
 #     __file__,
-#     'predict',
+#     'train',
+#     'E:\\ai\\train.dat.txt',
 #     'E:\\ai\\finalized_model_ada.sav',
-#     'E:\\ai\\testfile_2.dat',
-#
+#     'ada'
 # ]
+sys.argv = [
+    __file__,
+    'predict',
+    'E:\\ai\\finalized_model_ada.sav',
+    'E:\\ai\\testfile_2.dat',
+
+]
 import pandas as pd
 import numpy as np
 from scipy.stats import entropy
@@ -496,12 +496,14 @@ class AdaBoost:
     def predict(self,X):
         enwei=0
         dlwei=0
-        print(self.hypotheses)
+        # print(X)
+        # print(self.hypotheses)
+        # print(self.hypothesis_weights)
         for i in self.hypotheses:
-            if(X[i]==1):
-                enwei=enwei+self.hypothesis_weights
+            if(X.iloc[i]==True):
+                enwei=enwei+self.hypothesis_weights[i]
             else:
-                dlwei=dlwei+self.hypothesis_weights
+                dlwei=dlwei+self.hypothesis_weights[i]
         if(enwei>dlwei):
             print("en")
         else:
@@ -556,7 +558,7 @@ elif(sys.argv[1]=="predict"):
                 model = pickle.load(f)
                 b.read((sys.argv[3]),"predict")
                 # print(b.data)
-                predictions = b.data.iloc[:, :].apply(lambda x: model.predict(x))
+                predictions = b.data.iloc[:, :].apply(lambda x: model.predict(x), axis=1)
                 # for each_predictions in predictions:
                 #     print(each_predictions)
         #         # print(f"\\nPrediction for {new_instance}: {Counter(model.predict(new_instance))}")
