@@ -445,11 +445,15 @@ class AdaBoost:
             self.hypothesis_weights.append(z)
 
 
-    def entropy(self, series):
-        return entropy(series.value_counts(normalize=True), base=2)
+    # def entropy(self, series):
+    #     return entropy(series.value_counts(normalize=True), base=2)
+    def weighted_entropy(self, y, weights):
+        weighted_counts = np.bincount(y, weights=weights)
+        probabilities = weighted_counts / np.sum(weighted_counts)
+        return entropy(probabilities, base=2)
 
     def conditional_entropy(self, X, y):
-        y_entropy = self.entropy(y)
+        y_entropy = self.weighted_entropy(y)
         values, counts = np.unique(X, return_counts=True)
         weighted_entropy = sum(
             [(counts[i] / np.sum(counts)) * self.entropy(y[X == value]) for i, value in enumerate(values)])
@@ -463,7 +467,7 @@ class AdaBoost:
     def train_weak_learner(self):
         # Separate features and target
         X = self.data.iloc[:, 1:].values.astype(bool)
-        y = np.where(self.data.iloc[:, 0] == 'A', 1, -1)
+        y = np.where(self.data.iloc[:, 0] == 'en', 1, -1)
 
         # Find the attribute with the highest information gain
         best_attribute = self.information_gain(X, y)
