@@ -445,29 +445,36 @@ class AdaBoost:
             self.hypothesis_weights.append(z)
 
 
+    def entropy(self, series):
+        return entropy(series.value_counts(normalize=True), base=2)
+
+    def conditional_entropy(self, X, y):
+        y_entropy = self.entropy(y)
+        values, counts = np.unique(X, return_counts=True)
+        weighted_entropy = sum(
+            [(counts[i] / np.sum(counts)) * self.entropy(y[X == value]) for i, value in enumerate(values)])
+
+        return y_entropy - weighted_entropy
+
+    def information_gain(self, X, y):
+        info_gain = [self.conditional_entropy(X[col], y) for col in X.columns]
+        return X.columns[np.argmax(info_gain)]
+
     def train_weak_learner(self):
-        best_stump = None
-        best_error = float('inf')
+        # Separate features and target
+        X = self.data.iloc[:, 1:].values.astype(bool)
+        y = np.where(self.data.iloc[:, 0] == 'A', 1, -1)
 
+        # Find the attribute with the highest information gain
+        best_attribute = self.information_gain(X, y)
 
-        # For each attribute in the data
-        for attribute in self.data.columns[:-1]:#There is a small mistake here, the attribute does not mark which attribute it is.
-            # Create a stump that classifies examples based on the attribute
-            stump = lambda x: 'EN' if x[attribute] else 'DE'
+        # Create a weak learner (stump) based on the best attribute
+        stump = lambda x: 'EN' if x[best_attribute] else 'DE'
 
-            # Compute the weighted error of the stump
-            error = sum(
-                self.weights[i] for i in range(len(self.data)) if stump(self.data.iloc[i]) != self.data.iloc[i,-1])
+        # Compute the error of the weak learner
+        error = sum(self.weights[i] for i in range(len(X)) if stump(X[i]) != y[i])
 
-            # If this stump has the lowest error so far, store it as the best stump
-            # if error < best_error:
-            #     best_stump = stump
-            #     best_error = error
-            if error<best_error:
-                best_stump=attribute
-                best_error=error
-
-        return (best_stump,best_error)
+        return stump, error
 
     def classify(self, x):
         # The final classifier is a weighted combination of the hypotheses
