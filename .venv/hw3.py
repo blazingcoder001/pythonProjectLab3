@@ -4,14 +4,14 @@ import math
 # sys.argv = [
 #     __file__,
 #     'train',
-#     'E:\\ai\\train.dat.txt',
-#     'E:\\ai\\finalized_model_ada.sav',
-#     'ada'
+#     'E:\\ai\\train_big.dat',
+#     'E:\\ai\\finalized_model_dt.sav',
+#     'dt'
 # ]
 sys.argv = [
     __file__,
     'predict',
-    'E:\\ai\\finalized_model_ada.sav',
+    'E:\\ai\\finalized_model_dt.sav',
     'E:\\ai\\testfile_2.dat',
 
 ]
@@ -46,7 +46,7 @@ class Solution:
 
                 for line in file:
                     # Split the line into language and text
-                    language, text = line.strip().split('|')
+                    language, text = line.strip().split('|',1)
 
                     # Initialize the attributes list
                     attributes = []
@@ -136,11 +136,11 @@ class Solution:
     def run(self):
         # self.read()
         self.tree = self.build_tree(self.data.iloc[:, :-1], self.data.iloc[:, -1], self.depth)
-        print(self.tree)
+        # print(self.tree)
 
 
         # Save the model to disk
-        filename = 'finalized_model.sav'
+        filename = sys.argv[3]
         pickle.dump(self.tree, open(filename, 'wb'))
 
     def load_model(self, filename):
@@ -365,7 +365,7 @@ class AdaBoost:
 
                 for line in file:
                     # Split the line into language and text
-                    language, text = line.strip().split('|')
+                    language, text = line.strip().split('|',1)
 
                     # Initialize the attributes list
                     attributes = []
@@ -384,8 +384,10 @@ class AdaBoost:
                 self.data = pd.DataFrame(data,
                                          columns=['Class','A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'A9', 'A10'])
                 self.X = self.data.iloc[:, 1:]  # Keep X as a DataFrame
+                # print(self.X)
                 self.y = np.where(self.data.iloc[:, 0] == 'en', 1, 0)
                 self.weights = np.ones(len(self.data)) / len(self.data)
+                # print(self.data)
 
 
 
@@ -424,6 +426,7 @@ class AdaBoost:
     def train(self, K):
         N = len(self.data)
         epsilon = 1e-7  # Small positive number to avoid division by zero
+        # print(self.data)
 
         for k in range(K):
             h = self.train_weak_learner()
@@ -433,18 +436,24 @@ class AdaBoost:
 
             # stump = lambda x: 'EN' if x[current_best] else 'DE'
             stump = lambda x: 1 if x.iloc[current_best] else 0
+            convert= lambda y: 1 if True else 0
 
 
 
             # error = max(epsilon, min(1 - epsilon, error))
-            error = sum(self.weights[i] for i in range(len(self.X)) if stump(self.X[self.X.columns[i]]) != self.y[i])
+            error = sum(self.weights[i] for i in range(len(self.X)) if stump(self.X.iloc[i]) != self.y[i])
 
             if error > 0.5:
                 break
-
             for i in range(N):
-                if stump(self.data.iloc[i]) != self.data.iloc[i,-1]:
+                # if(i==0 and k==0):
+                #     print(self.data)
+                #     print(stump(self.data.iloc[i]))
+                #     print(convert(self.data.iloc[i,-1]))
+
+                if stump(self.data.iloc[i]) != convert(self.data.iloc[i,-1]):
                     self.weights[i] *= error / (1 - error)
+
 
 
 
@@ -479,19 +488,18 @@ class AdaBoost:
         return y_entropy - weighted_entropy
 
     def information_gain(self, X, y):
-        # print(y)
+        # print(X)
         info_gain = [self.conditional_entropy(X[col], y) for col in X.columns]
         return np.argmax(info_gain)
 
     def train_weak_learner(self):
+        # print(self.X)
 
         best_attribute = self.information_gain(self.X, self.y)
 
         return best_attribute
 
-    def classify(self, x):
-        # The final classifier is a weighted combination of the hypotheses
-        return sum(self.hypothesis_weights[k] * self.hypothesesk for k in range(len(self.hypotheses)))
+
 
     def predict(self,X):
         enwei=0
@@ -538,6 +546,7 @@ elif(sys.argv[1]=="train" and sys.argv[4]=="ada"):
 
     model.train(50)
 
+
     # Separate features and target
     X = model.data.iloc[:, 1:].values.astype(bool)
     y = np.where(model.data.iloc[:, 0] == 'A', 1, 0)
@@ -556,6 +565,7 @@ elif(sys.argv[1]=="predict"):
             b = AdaBoost()
             with open(sys.argv[2], 'rb') as f:
                 model = pickle.load(f)
+                # print(model.hypothesis_weights)
                 b.read((sys.argv[3]),"predict")
                 # print(b.data)
                 predictions = b.data.iloc[:, :].apply(lambda x: model.predict(x), axis=1)
