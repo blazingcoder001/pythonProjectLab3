@@ -5,13 +5,14 @@ import math
 #     __file__,
 #     'train',
 #     'E:\\ai\\train_big.dat',
-#     'E:\\ai\\finalized_model_dt.sav',
-#     'dt'
+#     'E:\\ai\\finalized_model.sav',
+#     'ada'
 # ]
+
 sys.argv = [
     __file__,
     'predict',
-    'E:\\ai\\finalized_model_dt.sav',
+    'E:\\ai\\finalized_model.sav',
     'E:\\ai\\testfile_2.dat',
 
 ]
@@ -36,7 +37,7 @@ class Solution:
                               ['she', 'he', 'they', 'those', 'him', 'her', 'them', 'it'],
                               ['and', 'of', 'or', 'our', 'she', 'that', 'this', 'to', 'us']]
 
-        german_attributes = [['ich', 'sie','du','er','es','ich','sie','wir','auf','aus','durch','für','gegen','hinter','nach','neben', 'unter', 'vor', 'zu'], ['aber','damit','ob','weil','wenn','und', 'oder'], ['warum','wer','wie','wo','woher','wohin','ä', 'ö', 'ü'], ['der', 'das','dein','mein','my']]
+        german_attributes = [['ich', 'sie','du','er','es','ich','sie','wir','auf','aus','durch','für','gegen','hinter','nach','neben', 'unter', 'vor', 'zu'], ['aber','damit','ob','weil','wenn','und', 'oder'], ['warum','wer','wie','wo','woher','wohin','ä', 'ö', 'ü'], ['der', 'das','dein','mein']]
 
         # Initialize the data list
         data = []
@@ -355,7 +356,7 @@ class AdaBoost:
         german_attributes = [
             ['ich', 'sie', 'du', 'er', 'es', 'ich', 'sie', 'wir', 'auf', 'aus', 'durch', 'für', 'gegen', 'hinter',
              'nach', 'neben', 'unter', 'vor', 'zu'], ['aber', 'damit', 'ob', 'weil', 'wenn', 'und', 'oder'],
-            ['warum', 'wer', 'wie', 'wo', 'woher', 'wohin', 'ä', 'ö', 'ü'], ['der', 'das', 'dein', 'mein', 'my']]
+            ['warum', 'wer', 'wie', 'wo', 'woher', 'wohin', 'ä', 'ö', 'ü'], ['der', 'das', 'dein', 'mein']]
 
         # Initialize the data list
         data = []
@@ -432,16 +433,21 @@ class AdaBoost:
             h = self.train_weak_learner()
             current_best=h
             # error=h[1]
+            # print(current_best)
 
 
             # stump = lambda x: 'EN' if x[current_best] else 'DE'
+            # print(self.X.iloc[2].iloc[current_best])
             stump = lambda x: 1 if x.iloc[current_best] else 0
-            convert= lambda y: 1 if True else 0
+            convert= lambda y: 1 if y=='en' else 0
 
 
-
-            # error = max(epsilon, min(1 - epsilon, error))
+            # print(self.X.iloc[0][current_best])
+            # print(self.y[0])
             error = sum(self.weights[i] for i in range(len(self.X)) if stump(self.X.iloc[i]) != self.y[i])
+            error = max(epsilon, min(1 - epsilon, error))
+
+            # print(error)
 
             if error > 0.5:
                 break
@@ -449,10 +455,13 @@ class AdaBoost:
                 # if(i==0 and k==0):
                 #     print(self.data)
                 #     print(stump(self.data.iloc[i]))
-                #     print(convert(self.data.iloc[i,-1]))
+                # print(convert(self.data.iloc[0,0]))
+                # print(self.data.iloc[0,0])
 
-                if stump(self.data.iloc[i]) != convert(self.data.iloc[i,-1]):
+                if stump(self.X.iloc[i]) != convert(self.data.iloc[i,0]):
                     self.weights[i] *= error / (1 - error)
+                    # print(self.weights[i])
+                # print((self.weights))
 
 
 
@@ -470,32 +479,63 @@ class AdaBoost:
 
     # def entropy(self, series):
     #     return entropy(series.value_counts(normalize=True), base=2)
-    def weighted_entropy(self, y,weights):
-        # print(self.weights)
-        # print(y)
-        # print(y)
-        # print(self.weights)
-        weighted_counts = np.bincount(y, weights=weights)
-        probabilities = weighted_counts / np.sum(weighted_counts)
-        return entropy(probabilities, base=2)
+    # def weighted_entropy(self, y,weights):
+    #     # print(self.weights)
+    #     # print(y)
+    #     # print(y)
+    #     # print(self.weights)
+    #     weighted_counts = np.bincount(y, weights=weights)
+    #     probabilities = weighted_counts / np.sum(weighted_counts)
+    #     return entropy(probabilities, base=2)
+    #
+    # def conditional_entropy(self, X, y):
+    #     # print(X)
+    #     y_entropy = self.weighted_entropy(y,self.weights)
+    #     values, counts = np.unique(X, return_counts=True)
+    #     weighted_entropy = sum(
+    #         [(counts[i] / np.sum(counts)) * self.weighted_entropy(y[X == value],self.weights[X==value]) for i, value in enumerate(values)])
+    #
+    #     return y_entropy - weighted_entropy
+    #
+    # def information_gain(self, X, y):
+    #     # print(y)
+    #     info_gain = [self.conditional_entropy(X[col], y) for col in X.columns]
+    #     return np.argmax(info_gain)
+    # def weighted_entropy(self, series, weights):
+    #     # Calculate the weighted entropy of a
+    #     series=pd.Series(series)
+    #     value_counts = series.value_counts(normalize=True)
+    #     weighted_counts = value_counts * weights
+    #     return entropy(weighted_counts, base=2)
+    def weighted_entropy(self, series, weights):
+        # Calculate the weighted entropy of a series
+        series = pd.Series(series)
+        unique_values = series.unique()
+        value_counts = series.value_counts(normalize=True)
+        # Adjust weights for unique values
+        adjusted_weights = [np.sum(weights[series == value]) for value in unique_values]
+        weighted_counts = value_counts * adjusted_weights
+        return entropy(weighted_counts, base=2)
 
-    def conditional_entropy(self, X, y):
-        y_entropy = self.weighted_entropy(y,self.weights)
+    def weighted_conditional_entropy(self, X, y):
+        # Calculate the weighted conditional entropy of X given y
+        y_entropy = self.weighted_entropy(y, self.weights)
         values, counts = np.unique(X, return_counts=True)
         weighted_entropy = sum(
-            [(counts[i] / np.sum(counts)) * self.weighted_entropy(y[X == value],self.weights[X==value]) for i, value in enumerate(values)])
-
+            [(counts[i] / np.sum(counts)) * self.weighted_entropy(y[X == value], self.weights[X == value]) for i, value
+             in enumerate(values)])
         return y_entropy - weighted_entropy
 
-    def information_gain(self, X, y):
-        # print(X)
-        info_gain = [self.conditional_entropy(X[col], y) for col in X.columns]
+    def weighted_informationgain(self, X, y):
+        # Calculate the weighted information gain of all columns in X with respect to y
+        info_gain = [self.weighted_conditional_entropy(X[col], y) for col in X.columns]
         return np.argmax(info_gain)
 
     def train_weak_learner(self):
         # print(self.X)
 
-        best_attribute = self.information_gain(self.X, self.y)
+        best_attribute = self.weighted_informationgain(self.X, self.y)
+        # print(self.X)
 
         return best_attribute
 
@@ -519,18 +559,6 @@ class AdaBoost:
 
 
 
-# # Create an AdaBoost instance
-# adaboost = AdaBoost()
-#
-# # Read the training data
-# adaboost.read('training_data.txt', 'train')
-#
-# # Train the AdaBoost model with 50 stumps
-# adaboost.train(50)
-
-# Classify a new example
-# print(adaboost.classify(new_example))
-
 if(sys.argv[1]=="train" and sys.argv[4]=="dt"):
     a = Solution()
     a.read(sys.argv[2],"train")
@@ -545,6 +573,8 @@ elif(sys.argv[1]=="train" and sys.argv[4]=="ada"):
     model.read(sys.argv[2],"train")
 
     model.train(50)
+
+    # print(model.weights)
 
 
     # Separate features and target
